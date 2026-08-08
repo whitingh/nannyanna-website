@@ -27,7 +27,7 @@ export default function About() {
         {/* Photo */}
         <div className="relative mx-auto aspect-[4/5] w-full max-w-md overflow-hidden rounded-3xl">
           <Image
-            src="/images/swagmeister.jpeg"
+            src="/images/swagmeister.JPEG"
             alt="Anna from NannyAnna"
             fill
             className="object-cover"
