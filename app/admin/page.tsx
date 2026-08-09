@@ -13,6 +13,16 @@ type Article = {
   published_at: string | null;
 };
 
+type Resource = {
+  id: number;
+  title: string;
+  slug: string;
+  status: string;
+  updated_at: string;
+  published_at: string | null;
+  resource_type: string;
+};
+
 export default function AdminPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,6 +34,9 @@ export default function AdminPage() {
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
+
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loadingResources, setLoadingResources] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -57,8 +70,12 @@ export default function AdminPage() {
     }
 
     setIsAdmin(true);
-    setLoading(false);
-    loadArticles();
+setLoading(false);
+
+await Promise.all([
+  loadArticles(),
+  loadResources(),
+]);
   }
 
   async function loadArticles() {
@@ -78,6 +95,26 @@ export default function AdminPage() {
     setArticles(data || []);
     setLoadingArticles(false);
   }
+
+  async function loadResources() {
+  setLoadingResources(true);
+
+  const { data, error } = await supabase
+    .from("resources")
+    .select(
+      "id, title, slug, status, updated_at, published_at, resource_type"
+    )
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    setLoadingResources(false);
+    return;
+  }
+
+  setResources(data || []);
+  setLoadingResources(false);
+}
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -112,6 +149,14 @@ export default function AdminPage() {
   const published = articles.filter(
     (article) => article.status === "published"
   );
+
+  const resourceDrafts = resources.filter(
+  (resource) => resource.status === "draft"
+);
+
+const publishedResources = resources.filter(
+  (resource) => resource.status === "published"
+);
 
   if (loading) {
     return (
@@ -202,13 +247,6 @@ export default function AdminPage() {
           </div>
 
           <div className="flex gap-3">
-            <Link
-              href="/admin/articles/new"
-              className="rounded-full bg-[#527A5A] px-5 py-3 font-semibold text-white transition hover:bg-[#45694D]"
-            >
-              New Article
-            </Link>
-
             <button
               onClick={handleLogout}
               className="rounded-full border border-[#527A5A] px-5 py-3 font-semibold text-[#527A5A] transition hover:bg-white"
@@ -218,6 +256,27 @@ export default function AdminPage() {
           </div>
         </div>
 
+        <section className="mt-10">
+        <div className="flex items-center justify-between">
+        <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#527A5A]">
+                Articles
+              </p>
+
+              <h2 className="mt-2 text-3xl font-bold">
+                Manage articles
+              </h2>
+         </div>
+         <Link
+              href="/admin/articles/new"
+              className="rounded-full bg-[#527A5A] px-5 py-3 font-semibold text-white"
+            >
+              New Article
+        </Link>
+        </div>
+         </section>
+
+        <section className="mt-10">
         <div className="mt-10 grid gap-6 sm:grid-cols-3">
           <div className="rounded-3xl bg-white p-6 shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-wider text-[#527A5A]">
@@ -240,6 +299,7 @@ export default function AdminPage() {
             <p className="mt-2 text-4xl font-bold">{published.length}</p>
           </div>
         </div>
+        </section>
 
         <section className="mt-10">
           <div className="flex items-center justify-between">
@@ -320,6 +380,160 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        </section>
+        <section className="mt-14">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#527A5A]">
+                Resources
+              </p>
+
+              <h2 className="mt-2 text-3xl font-bold">
+                Manage resources
+              </h2>
+            </div>
+
+            <Link
+              href="/admin/resources/new"
+              className="rounded-full bg-[#527A5A] px-5 py-3 font-semibold text-white"
+            >
+              New Resource
+            </Link>
+          </div>
+
+          <div className="mt-6 grid gap-6 md:grid-cols-3">
+            <div className="rounded-3xl bg-white p-7 shadow-sm">
+              <p className="text-sm font-semibold uppercase tracking-wider text-[#527A5A]">
+                Total
+              </p>
+
+              <p className="mt-2 text-4xl font-bold">
+                {resources.length}
+              </p>
+            </div>
+
+            <div className="rounded-3xl bg-white p-7 shadow-sm">
+              <p className="text-sm font-semibold uppercase tracking-wider text-[#B08D57]">
+                Drafts
+              </p>
+
+              <p className="mt-2 text-4xl font-bold">
+                {resourceDrafts.length}
+              </p>
+            </div>
+
+            <div className="rounded-3xl bg-white p-7 shadow-sm">
+              <p className="text-sm font-semibold uppercase tracking-wider text-[#527A5A]">
+                Published
+              </p>
+
+              <p className="mt-2 text-4xl font-bold">
+                {publishedResources.length}
+              </p>
+            </div>
+          </div>
+        {loadingResources ? (
+          <div className="mt-6 rounded-3xl bg-white p-6 shadow-sm">
+            Loading resources...
+          </div>
+        ) : (
+          <>
+            {/* Draft resources */}
+            <div className="mt-10">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-bold">
+                  Draft resources
+                </h3>
+
+                <span className="text-sm text-[#6b746b]">
+                  {resourceDrafts.length}{" "}
+                  {resourceDrafts.length === 1 ? "draft" : "drafts"}
+                </span>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                {resourceDrafts.length > 0 ? (
+                  resourceDrafts.map((resource) => (
+                    <div
+                      key={resource.id}
+                      className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-wider text-[#B08D57]">
+                          Draft
+                        </p>
+
+                        <h4 className="mt-1 text-xl font-bold">
+                          {resource.title}
+                        </h4>
+                      </div>
+
+                      <Link
+                        href={`/admin/resources/${resource.id}`}
+                        className="rounded-full border border-[#527A5A] px-5 py-2 text-center font-semibold text-[#527A5A] transition hover:bg-[#E8F3E8]"
+                      >
+                        Edit
+                      </Link>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-3xl bg-white p-6 text-[#636b63] shadow-sm">
+                    No draft resources yet.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Published resources */}
+            <div className="mt-10">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-bold">
+                  Published resources
+                </h3>
+
+                <span className="text-sm text-[#6b746b]">
+                  {publishedResources.length}{" "}
+                  {publishedResources.length === 1
+                    ? "resource"
+                    : "resources"}
+                </span>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                {publishedResources.length > 0 ? (
+                  publishedResources.map((resource) => (
+                    <div
+                      key={resource.id}
+                      className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-wider text-[#527A5A]">
+                          Published
+                        </p>
+
+                        <h4 className="mt-1 text-xl font-bold">
+                          {resource.title}
+                        </h4>
+                      </div>
+
+                      <Link
+                        href={`/admin/resources/${resource.id}`}
+                        className="rounded-full border border-[#527A5A] px-5 py-2 text-center font-semibold text-[#527A5A] transition hover:bg-[#E8F3E8]"
+                      >
+                        Edit
+                      </Link>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-3xl bg-white p-6 text-[#636b63] shadow-sm">
+                    No published resources yet.
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+          
         </section>
       </div>
     </main>
