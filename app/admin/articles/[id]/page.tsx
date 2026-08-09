@@ -15,6 +15,7 @@ type Article = {
   content: string;
   topic: string | null;
   age_group: string | null;
+  image_url: string | null;
   status: "draft" | "published";
   published_at: string | null;
 };

@@ -3,7 +3,7 @@ import Image from "@tiptap/extension-image";
 const ArticleImage = Image.extend({
   addAttributes() {
     return {
-      ...this.parent?.(),
+      ...(this.parent ? this.parent() : {}),
 
       alignment: {
         default: "center",
@@ -22,11 +22,9 @@ const ArticleImage = Image.extend({
           return "center";
         },
 
-        renderHTML: (attributes) => {
-          return {
-            "data-alignment": attributes.alignment || "center",
-          };
-        },
+        renderHTML: (attributes) => ({
+          "data-alignment": attributes.alignment || "center",
+        }),
       },
     };
   },

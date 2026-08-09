@@ -12,6 +12,7 @@ import ArticleImage from "@/components/ArticleImage";
 import { supabase } from "@/lib/supabase";
 import ArticleHeading from "@/components/ArticleHeading";
 import Placeholder from "@tiptap/extension-placeholder";
+import type { Extensions } from "@tiptap/core";
 
 type ArticleEditorProps = {
   content: string;
@@ -34,34 +35,32 @@ export default function ArticleEditor({
     immediatelyRender: false,
 
     extensions: [
-      StarterKit.configure({
-  heading: false,
-}),
+  StarterKit.configure({
+    heading: false,
+  }),
 
-ArticleHeading.configure({
-  levels: [2, 3],
-}),,
+  ArticleHeading.configure({
+    levels: [2, 3],
+  }),
 
-      Link.configure({
-        openOnClick: false,
-        autolink: true,
-        HTMLAttributes: {
-          class: "text-[#527A5A] underline",
-        },
-      }),
+  Link.configure({
+    openOnClick: false,
+    autolink: true,
+    HTMLAttributes: {
+      class: "text-[#527A5A] underline",
+    },
+  }),
 
-      ArticleImage.configure({
-        HTMLAttributes: {
-          class: "article-inline-image",
-        },
-      }),
+  ArticleImage.configure({
+    HTMLAttributes: {
+      class: "article-inline-image",
+    },
+  }),
 
-      Placeholder.configure({
-  placeholder: "Write the article here...",
-}),
-    ],
-
-    content,
+  Placeholder.configure({
+    placeholder: "Write the article here...",
+  }),
+].filter(Boolean) as Extensions,
 
     editorProps: {
       attributes: {
@@ -96,6 +95,11 @@ ArticleHeading.configure({
     };
   },
 });
+
+const currentImageState = imageState ?? {
+  selected: false,
+  alignment: "center",
+};
 
   useEffect(() => {
   if (!editor) return;
@@ -203,7 +207,7 @@ ArticleHeading.configure({
 ) {
   if (!editor) return;
 
-  if (!imageState.selected) {
+  if (!currentImageState.selected) {
     alert("Click an image first.");
     return;
   }
@@ -488,10 +492,10 @@ ArticleHeading.configure({
 
         <button
   type="button"
-  disabled={!imageState.selected}
+  disabled={!currentImageState.selected}
   onClick={() => setImageAlignment("left")}
   className={
-    imageState.selected && imageState.alignment === "left"
+    currentImageState.selected && currentImageState.alignment === "left"
       ? activeButtonClass
       : `${buttonClass} disabled:opacity-40`
   }
@@ -501,10 +505,10 @@ ArticleHeading.configure({
 
 <button
   type="button"
-  disabled={!imageState.selected}
+  disabled={!currentImageState.selected}
   onClick={() => setImageAlignment("center")}
   className={
-    imageState.selected && imageState.alignment === "center"
+    currentImageState.selected && currentImageState.alignment === "center"
       ? activeButtonClass
       : `${buttonClass} disabled:opacity-40`
   }
@@ -514,10 +518,10 @@ ArticleHeading.configure({
 
 <button
   type="button"
-  disabled={!imageState.selected}
+  disabled={!currentImageState.selected}
   onClick={() => setImageAlignment("right")}
   className={
-    imageState.selected && imageState.alignment === "right"
+    currentImageState.selected && currentImageState.alignment === "right"
       ? activeButtonClass
       : `${buttonClass} disabled:opacity-40`
   }

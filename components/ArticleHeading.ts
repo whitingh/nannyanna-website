@@ -3,7 +3,7 @@ import Heading from "@tiptap/extension-heading";
 const ArticleHeading = Heading.extend({
   addAttributes() {
     return {
-      ...this.parent?.(),
+      ...(this.parent ? this.parent() : {}),
 
       marker: {
         default: "none",
