@@ -93,13 +93,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <footer
-        id="contact"
-        className="mt-20 border-t border-black/10 px-6 py-8 text-center text-sm text-[#666]"
-      >
-        © 2026 NannyAnna
-      </footer>
     </main>
   );
 }
