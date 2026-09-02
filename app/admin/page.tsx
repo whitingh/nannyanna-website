@@ -23,6 +23,18 @@ type Resource = {
   resource_type: string;
 };
 
+type Consultation = {
+  id: number;
+  name: string;
+  slug: string;
+  duration_minutes: number;
+  price_pence: number;
+  location_type: string;
+  is_active: boolean;
+  sort_order: number;
+  updated_at: string;
+};
+
 export default function AdminPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,6 +49,9 @@ export default function AdminPage() {
 
   const [resources, setResources] = useState<Resource[]>([]);
   const [loadingResources, setLoadingResources] = useState(false);
+
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [loadingConsultations, setLoadingConsultations] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -75,6 +90,7 @@ setLoading(false);
 await Promise.all([
   loadArticles(),
   loadResources(),
+  loadConsultations(),
 ]);
   }
 
@@ -116,6 +132,27 @@ await Promise.all([
   setLoadingResources(false);
 }
 
+async function loadConsultations() {
+  setLoadingConsultations(true);
+
+  const { data, error } = await supabase
+    .from("consultation_types")
+    .select(
+      "id, name, slug, duration_minutes, price_pence, location_type, is_active, sort_order, updated_at"
+    )
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    setLoadingConsultations(false);
+    return;
+  }
+
+  setConsultations(data || []);
+  setLoadingConsultations(false);
+}
+
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -141,6 +178,8 @@ await Promise.all([
     await supabase.auth.signOut();
     setIsAdmin(false);
     setArticles([]);
+    setResources([]);
+    setConsultations([]);
     setEmail("");
     setPassword("");
   }
@@ -156,6 +195,14 @@ await Promise.all([
 
 const publishedResources = resources.filter(
   (resource) => resource.status === "published"
+);
+
+const activeConsultations = consultations.filter(
+  (consultation) => consultation.is_active
+);
+
+const inactiveConsultations = consultations.filter(
+  (consultation) => !consultation.is_active
 );
 
   if (loading) {
@@ -246,10 +293,18 @@ const publishedResources = resources.filter(
             <h1 className="mt-2 text-4xl font-bold">NannyAnna Dashboard</h1>
           </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={handleLogout}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin/availability"
               className="rounded-full border border-[#527A5A] px-5 py-3 font-semibold text-[#527A5A] transition hover:bg-white"
+            >
+              Availability
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-full bg-[#527A5A] px-5 py-3 font-semibold text-white"
             >
               Log out
             </button>
@@ -534,6 +589,119 @@ const publishedResources = resources.filter(
           </>
         )}
           
+        </section>
+        <section className="mt-14">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#527A5A]">
+                Consultations
+              </p>
+
+              <h2 className="mt-2 text-3xl font-bold">
+                Manage consultations
+              </h2>
+            </div>
+
+            <Link
+              href="/admin/consultations/new"
+              className="rounded-full bg-[#527A5A] px-5 py-3 font-semibold text-white"
+            >
+              New Consultation
+            </Link>
+          </div>
+
+          <div className="mt-6 grid gap-6 md:grid-cols-3">
+            <div className="rounded-3xl bg-white p-7 shadow-sm">
+              <p className="text-sm font-semibold uppercase tracking-wider text-[#527A5A]">
+                Total
+              </p>
+
+              <p className="mt-2 text-4xl font-bold">
+                {consultations.length}
+              </p>
+            </div>
+
+            <div className="rounded-3xl bg-white p-7 shadow-sm">
+              <p className="text-sm font-semibold uppercase tracking-wider text-[#527A5A]">
+                Active
+              </p>
+
+              <p className="mt-2 text-4xl font-bold">
+                {activeConsultations.length}
+              </p>
+            </div>
+
+            <div className="rounded-3xl bg-white p-7 shadow-sm">
+              <p className="text-sm font-semibold uppercase tracking-wider text-[#B08D57]">
+                Inactive
+              </p>
+
+              <p className="mt-2 text-4xl font-bold">
+                {inactiveConsultations.length}
+              </p>
+            </div>
+          </div>
+
+          {loadingConsultations ? (
+            <div className="mt-6 rounded-3xl bg-white p-6 shadow-sm">
+              Loading consultations...
+            </div>
+          ) : (
+            <div className="mt-10 space-y-4">
+              {consultations.length > 0 ? (
+                consultations.map((consultation) => (
+                  <div
+                    key={consultation.id}
+                    className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p
+                          className={`text-sm font-semibold uppercase tracking-wider ${
+                            consultation.is_active
+                              ? "text-[#527A5A]"
+                              : "text-[#B08D57]"
+                          }`}
+                        >
+                          {consultation.is_active ? "Active" : "Inactive"}
+                        </p>
+
+                        <span className="text-sm text-[#6b746b]">
+                          •
+                        </span>
+
+                        <span className="text-sm text-[#6b746b]">
+                          {consultation.location_type === "in_person"
+                            ? "In person"
+                            : "Online"}
+                        </span>
+                      </div>
+
+                      <h3 className="mt-1 text-xl font-bold">
+                        {consultation.name}
+                      </h3>
+
+                      <p className="mt-1 text-sm text-[#636b63]">
+                        {consultation.duration_minutes} minutes · £
+                        {(consultation.price_pence / 100).toFixed(2)}
+                      </p>
+                    </div>
+
+                    <Link
+                      href={`/admin/consultations/${consultation.id}`}
+                      className="rounded-full border border-[#527A5A] px-5 py-2 text-center font-semibold text-[#527A5A] transition hover:bg-[#E8F3E8]"
+                    >
+                      Edit
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-3xl bg-white p-6 text-[#636b63] shadow-sm">
+                  No consultation types yet.
+                </div>
+              )}
+            </div>
+          )}
         </section>
       </div>
     </main>
