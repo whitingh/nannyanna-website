@@ -23,7 +23,7 @@ export default function Header() {
               width={420}
               height={140}
               priority
-              className="h-[110px] w-auto object-contain lg:h-[130px]"
+              className="h-[72px] w-auto object-contain lg:h-[130px]"
             />
           </Link>
 
