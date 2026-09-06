@@ -66,146 +66,190 @@ export async function sendBookingEmails(
     CUSTOMER CONFIRMATION
   */
   if (!booking.customer_confirmation_sent_at) {
-    const { error: emailError } =
-      await resend.emails.send({
-        from: "NannyAnna <hello@nannyanna.co.uk>",
-        to: booking.customer_email,
-        subject: "Your NannyAnna consultation is confirmed",
-        html: `
-          <div style="font-family: Arial, sans-serif; color: #2f2f2f; line-height: 1.6;">
-            <h1 style="color: #527A5A;">
-              Your booking is confirmed
-            </h1>
+    const claimTime = new Date().toISOString();
 
-            <p>Hi ${escapeHtml(
-              booking.customer_name
-            )},</p>
+    const { data: claimedBooking, error: claimError } =
+      await supabaseAdmin
+        .from("bookings")
+        .update({
+          customer_confirmation_sent_at: claimTime,
+        })
+        .eq("id", bookingId)
+        .is("customer_confirmation_sent_at", null)
+        .select("id")
+        .maybeSingle();
 
-            <p>
-              Thanks for booking with NannyAnna.
-              Your consultation has been confirmed.
-            </p>
-
-            <div style="background: #E8F3E8; padding: 20px; border-radius: 12px; margin: 24px 0;">
-              <strong>${escapeHtml(
-                consultation?.name || "Consultation"
-              )}</strong>
-
-              <p style="margin-bottom: 0;">
-                ${escapeHtml(date)} at ${escapeHtml(time)}
-                <br>
-                ${
-                  consultation?.duration_minutes
-                    ? `${consultation.duration_minutes} minutes<br>`
-                    : ""
-                }
-                ${escapeHtml(location)}
-              </p>
-            </div>
-
-            <p>
-              We look forward to speaking with you.
-            </p>
-
-            <p>
-              Anna<br>
-              NannyAnna
-            </p>
-          </div>
-        `,
-      });
-
-    if (emailError) {
-      throw emailError;
+    if (claimError) {
+      throw claimError;
     }
 
-    await supabaseAdmin
-      .from("bookings")
-      .update({
-        customer_confirmation_sent_at:
-          new Date().toISOString(),
-      })
-      .eq("id", bookingId)
-      .is("customer_confirmation_sent_at", null);
+    if (claimedBooking) {
+      const { error: emailError } =
+        await resend.emails.send({
+          from: "NannyAnna <hello@nannyanna.co.uk>",
+          to: booking.customer_email,
+          subject: "Your NannyAnna consultation is confirmed",
+          html: `
+            <div style="font-family: Arial, sans-serif; color: #2f2f2f; line-height: 1.6;">
+              <h1 style="color: #527A5A;">
+                Your booking is confirmed
+              </h1>
+
+              <p>
+                Hi ${escapeHtml(booking.customer_name)},
+              </p>
+
+              <p>
+                Thanks for booking with NannyAnna.
+                Your consultation has been confirmed.
+              </p>
+
+              <div style="background: #E8F3E8; padding: 20px; border-radius: 12px; margin: 24px 0;">
+                <strong>
+                  ${escapeHtml(
+                    consultation?.name || "Consultation"
+                  )}
+                </strong>
+
+                <p style="margin-bottom: 0;">
+                  ${escapeHtml(date)} at ${escapeHtml(time)}
+                  <br>
+                  ${
+                    consultation?.duration_minutes
+                      ? `${consultation.duration_minutes} minutes<br>`
+                      : ""
+                  }
+                  ${escapeHtml(location)}
+                </p>
+              </div>
+
+              <p>
+                We look forward to speaking with you.
+              </p>
+
+              <p>
+                Anna<br>
+                NannyAnna
+              </p>
+            </div>
+          `,
+        });
+
+      if (emailError) {
+        await supabaseAdmin
+          .from("bookings")
+          .update({
+            customer_confirmation_sent_at: null,
+          })
+          .eq("id", bookingId)
+          .eq(
+            "customer_confirmation_sent_at",
+            claimTime
+          );
+
+        throw emailError;
+      }
+    }
   }
 
   /*
     ANNA NOTIFICATION
   */
   if (!booking.admin_notification_sent_at) {
-    const notes = booking.customer_notes?.trim();
+    const claimTime = new Date().toISOString();
 
-    const { error: emailError } =
-      await resend.emails.send({
-        from: "NannyAnna <hello@nannyanna.co.uk>",
-        to: "hello@nannyanna.co.uk",
-        subject: `New booking: ${
-          consultation?.name || "Consultation"
-        }`,
-        html: `
-          <div style="font-family: Arial, sans-serif; color: #2f2f2f; line-height: 1.6;">
-            <h1 style="color: #527A5A;">
-              New consultation booking
-            </h1>
+    const { data: claimedBooking, error: claimError } =
+      await supabaseAdmin
+        .from("bookings")
+        .update({
+          admin_notification_sent_at: claimTime,
+        })
+        .eq("id", bookingId)
+        .is("admin_notification_sent_at", null)
+        .select("id")
+        .maybeSingle();
 
-            <p>
-              <strong>Consultation:</strong>
-              ${escapeHtml(
-                consultation?.name || "Consultation"
-              )}
-            </p>
-
-            <p>
-              <strong>Date:</strong>
-              ${escapeHtml(date)}
-            </p>
-
-            <p>
-              <strong>Time:</strong>
-              ${escapeHtml(time)}
-            </p>
-
-            <p>
-              <strong>Customer:</strong>
-              ${escapeHtml(booking.customer_name)}
-            </p>
-
-            <p>
-              <strong>Email:</strong>
-              ${escapeHtml(booking.customer_email)}
-            </p>
-
-            <p>
-              <strong>Location:</strong>
-              ${escapeHtml(location)}
-            </p>
-
-            ${
-              notes
-                ? `
-                  <p>
-                    <strong>Customer notes:</strong><br>
-                    ${escapeHtml(notes)}
-                  </p>
-                `
-                : ""
-            }
-          </div>
-        `,
-      });
-
-    if (emailError) {
-      throw emailError;
+    if (claimError) {
+      throw claimError;
     }
 
-    await supabaseAdmin
-      .from("bookings")
-      .update({
-        admin_notification_sent_at:
-          new Date().toISOString(),
-      })
-      .eq("id", bookingId)
-      .is("admin_notification_sent_at", null);
+    if (claimedBooking) {
+      const notes = booking.customer_notes?.trim();
+
+      const { error: emailError } =
+        await resend.emails.send({
+          from: "NannyAnna <hello@nannyanna.co.uk>",
+          to: "hello@nannyanna.co.uk",
+          subject: `New booking: ${
+            consultation?.name || "Consultation"
+          }`,
+          html: `
+            <div style="font-family: Arial, sans-serif; color: #2f2f2f; line-height: 1.6;">
+              <h1 style="color: #527A5A;">
+                New consultation booking
+              </h1>
+
+              <p>
+                <strong>Consultation:</strong>
+                ${escapeHtml(
+                  consultation?.name || "Consultation"
+                )}
+              </p>
+
+              <p>
+                <strong>Date:</strong>
+                ${escapeHtml(date)}
+              </p>
+
+              <p>
+                <strong>Time:</strong>
+                ${escapeHtml(time)}
+              </p>
+
+              <p>
+                <strong>Customer:</strong>
+                ${escapeHtml(booking.customer_name)}
+              </p>
+
+              <p>
+                <strong>Email:</strong>
+                ${escapeHtml(booking.customer_email)}
+              </p>
+
+              <p>
+                <strong>Location:</strong>
+                ${escapeHtml(location)}
+              </p>
+
+              ${
+                notes
+                  ? `
+                    <p>
+                      <strong>Customer notes:</strong><br>
+                      ${escapeHtml(notes)}
+                    </p>
+                  `
+                  : ""
+              }
+            </div>
+          `,
+        });
+
+      if (emailError) {
+        await supabaseAdmin
+          .from("bookings")
+          .update({
+            admin_notification_sent_at: null,
+          })
+          .eq("id", bookingId)
+          .eq(
+            "admin_notification_sent_at",
+            claimTime
+          );
+
+        throw emailError;
+      }
+    }
   }
 }
 

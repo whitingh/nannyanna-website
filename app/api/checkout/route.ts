@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { DateTime } from "luxon";
 import { getAvailableTimes } from "@/lib/bookingAvailability";
 import { sendBookingEmails } from "@/lib/sendBookingEmails";
+import { syncBookingToCalendar } from "@/lib/syncBookingToCalendar";
 
 const TIME_ZONE = "Europe/London";
 
@@ -157,6 +158,15 @@ export async function POST(request: NextRequest) {
 
       if (confirmError) {
         throw confirmError;
+      }
+
+      try {
+        await syncBookingToCalendar(booking.id);
+      } catch (calendarError) {
+        console.error(
+          "Could not sync free booking to calendar:",
+          calendarError
+        );
       }
 
       try {

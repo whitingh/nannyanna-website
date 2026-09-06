@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { sendBookingEmails } from "@/lib/sendBookingEmails";
+import { syncBookingToCalendar } from "@/lib/syncBookingToCalendar";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -135,6 +136,28 @@ export async function POST(request: NextRequest) {
       }
 
       try {
+        console.log(
+          `Starting calendar sync for paid booking ${bookingId}`
+        );
+
+        await syncBookingToCalendar(bookingId);
+
+        console.log(
+          `Calendar sync completed for paid booking ${bookingId}`
+        );
+      } catch (calendarError) {
+        console.error(
+          "Could not sync booking to calendar:",
+          calendarError
+        );
+
+        return NextResponse.json(
+          { error: "Could not sync booking to calendar." },
+          { status: 500 }
+        );
+      }
+
+      try {
         await sendBookingEmails(bookingId);
       } catch (emailError) {
         console.error(
@@ -144,15 +167,6 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(
           { error: "Could not send booking emails." },
-          { status: 500 }
-        );
-      }
-
-      if (bookingError) {
-        console.error(bookingError);
-
-        return NextResponse.json(
-          { error: "Could not confirm booking." },
           { status: 500 }
         );
       }
