@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { DateTime } from "luxon";
 import { getAvailableTimes } from "@/lib/bookingAvailability";
+import { sendBookingEmails } from "@/lib/sendBookingEmails";
 
 const TIME_ZONE = "Europe/London";
 
@@ -156,6 +157,15 @@ export async function POST(request: NextRequest) {
 
       if (confirmError) {
         throw confirmError;
+      }
+
+      try {
+        await sendBookingEmails(booking.id);
+      } catch (emailError) {
+        console.error(
+          "Could not send free booking emails:",
+          emailError
+        );
       }
 
       return NextResponse.json({

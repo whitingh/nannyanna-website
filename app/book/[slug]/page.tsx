@@ -481,8 +481,12 @@ export default function ConsultationBookingPage() {
                     className="mt-7 w-full rounded-full bg-[#527A5A] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#45694D] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {startingPayment
-                      ? "Opening secure payment..."
-                      : "Continue to payment"}
+                      ? consultation.price_pence === 0
+                        ? "Confirming booking..."
+                        : "Opening secure payment..."
+                      : consultation.price_pence === 0
+                        ? "Confirm booking"
+                        : "Continue to payment"}
                   </button>
 
                   {paymentError && (
@@ -491,9 +495,11 @@ export default function ConsultationBookingPage() {
                     </p>
                   )}
 
-                  <p className="mt-3 text-center text-xs leading-5 text-[#777]">
-                    Your booking is not confirmed until payment is completed.
-                  </p>
+                  {consultation.price_pence > 0 && (
+                    <p className="mt-3 text-center text-xs leading-5 text-[#777]">
+                      Your booking is not confirmed until payment is completed.
+                    </p>
+                  )}
                 </>
               )}
             </div>

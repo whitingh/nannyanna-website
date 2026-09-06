@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
+import { sendBookingEmails } from "@/lib/sendBookingEmails";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
           ? session.payment_intent
           : session.payment_intent?.id || null;
 
-      const { error: bookingError } =
+      const { data: updatedBooking, error: bookingError } =
         await supabaseAdmin
           .from("bookings")
           .update({
@@ -109,7 +110,43 @@ export async function POST(request: NextRequest) {
           .eq(
             "stripe_checkout_session_id",
             session.id
-          );
+          )
+          .select("id")
+          .maybeSingle();
+
+      if (bookingError) {
+        console.error(bookingError);
+
+        return NextResponse.json(
+          { error: "Could not confirm booking." },
+          { status: 500 }
+        );
+      }
+
+      if (!updatedBooking) {
+        console.error(
+          `No booking matched Stripe session ${session.id}.`
+        );
+
+        return NextResponse.json(
+          { error: "Booking not found." },
+          { status: 404 }
+        );
+      }
+
+      try {
+        await sendBookingEmails(bookingId);
+      } catch (emailError) {
+        console.error(
+          "Could not send booking emails:",
+          emailError
+        );
+
+        return NextResponse.json(
+          { error: "Could not send booking emails." },
+          { status: 500 }
+        );
+      }
 
       if (bookingError) {
         console.error(bookingError);
