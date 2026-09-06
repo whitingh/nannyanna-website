@@ -8,7 +8,7 @@ export default function Home() {
           Childcare support from real experience
         </p>
 
-        <h1 className="max-w-4xl text-5xl font-bold leading-tight md:text-7xl">
+        <h1 className="max-w-4xl text-4xl font-bold leading-tight md:text-6xl">
           Helping parents feel more confident about childcare
         </h1>
 

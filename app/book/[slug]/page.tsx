@@ -37,6 +37,9 @@ export default function ConsultationBookingPage() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
 
+  const [startingPayment, setStartingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+
   useEffect(() => {
     loadBookingData();
   }, [slug]);
@@ -56,7 +59,12 @@ export default function ConsultationBookingPage() {
         .single();
 
     if (consultationError || !consultationData) {
-      console.error(consultationError);
+      console.error("Consultation error details:", {
+        message: consultationError?.message,
+        details: consultationError?.details,
+        hint: consultationError?.hint,
+        code: consultationError?.code,
+      });
       setMessage("This consultation is not currently available.");
       setLoading(false);
       return;
@@ -107,6 +115,72 @@ export default function ConsultationBookingPage() {
       setAvailableTimes([]);
     } finally {
       setLoadingTimes(false);
+    }
+  }
+
+  async function handleCheckout() {
+    if (
+      !consultation ||
+      !selectedDate ||
+      !selectedTime ||
+      !customerName.trim() ||
+      !customerEmail.trim()
+    ) {
+      return;
+    }
+
+    setStartingPayment(true);
+    setPaymentError("");
+
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          consultationId: consultation.id,
+          slug: consultation.slug,
+          date: selectedDate,
+          time: selectedTime,
+          customerName: customerName.trim(),
+          customerEmail: customerEmail.trim(),
+          customerNotes: customerNotes.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setPaymentError(
+          data.error ||
+            "Could not start payment. Please try again."
+        );
+        return;
+      }
+
+      if (data.free && data.bookingId) {
+        window.location.href =
+          `/book/success?booking_id=${data.bookingId}&free=true`;
+        return;
+      }
+
+      if (!data.url) {
+        setPaymentError(
+          "Could not start payment. Please try again."
+        );
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      console.error(error);
+
+      setPaymentError(
+        "Could not start payment. Please try again."
+      );
+    } finally {
+      setStartingPayment(false);
     }
   }
 
@@ -398,14 +472,24 @@ export default function ConsultationBookingPage() {
 
                   <button
                     type="button"
+                    onClick={handleCheckout}
                     disabled={
                       !customerName.trim() ||
-                      !customerEmail.trim()
+                      !customerEmail.trim() ||
+                      startingPayment
                     }
                     className="mt-7 w-full rounded-full bg-[#527A5A] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#45694D] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Continue to payment
+                    {startingPayment
+                      ? "Opening secure payment..."
+                      : "Continue to payment"}
                   </button>
+
+                  {paymentError && (
+                    <p className="mt-3 text-center text-sm font-medium text-red-700">
+                      {paymentError}
+                    </p>
+                  )}
 
                   <p className="mt-3 text-center text-xs leading-5 text-[#777]">
                     Your booking is not confirmed until payment is completed.
