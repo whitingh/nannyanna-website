@@ -35,6 +35,21 @@ type Consultation = {
   updated_at: string;
 };
 
+type Booking = {
+  id: number;
+  customer_name: string;
+  start_time: string;
+  status: string;
+  consultation_types:
+    | {
+        name: string;
+      }
+    | {
+        name: string;
+      }[]
+    | null;
+};
+
 export default function AdminPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,6 +67,9 @@ export default function AdminPage() {
 
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loadingConsultations, setLoadingConsultations] = useState(false);
+
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -91,6 +109,7 @@ await Promise.all([
   loadArticles(),
   loadResources(),
   loadConsultations(),
+  loadBookings(),
 ]);
   }
 
@@ -153,6 +172,36 @@ async function loadConsultations() {
   setLoadingConsultations(false);
 }
 
+async function loadBookings() {
+  setLoadingBookings(true);
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(`
+      id,
+      customer_name,
+      start_time,
+      status,
+      consultation_types (
+        name
+      )
+    `)
+    .gte("start_time", new Date().toISOString())
+    .neq("status", "cancelled")
+    .order("start_time", {
+      ascending: true,
+    });
+
+  if (error) {
+    console.error(error);
+    setLoadingBookings(false);
+    return;
+  }
+
+  setBookings((data || []) as Booking[]);
+  setLoadingBookings(false);
+}
+
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -180,6 +229,7 @@ async function loadConsultations() {
     setArticles([]);
     setResources([]);
     setConsultations([]);
+    setBookings([]);
     setEmail("");
     setPassword("");
   }
@@ -310,6 +360,99 @@ const inactiveConsultations = consultations.filter(
             </button>
           </div>
         </div>
+
+        <section className="mt-10">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#527A5A]">
+                Bookings
+              </p>
+
+              <h2 className="mt-2 text-3xl font-bold">
+                Upcoming bookings
+              </h2>
+
+              <p className="mt-2 text-[#636b63]">
+                {bookings.length === 0
+                  ? "No upcoming consultations."
+                  : `${bookings.length} upcoming ${
+                      bookings.length === 1
+                        ? "consultation"
+                        : "consultations"
+                    }.`}
+              </p>
+            </div>
+
+            <Link
+              href="/admin/bookings"
+              className="rounded-full bg-[#527A5A] px-5 py-3 text-center font-semibold text-white transition hover:bg-[#45694D]"
+            >
+              View all bookings
+            </Link>
+          </div>
+
+          {loadingBookings ? (
+            <div className="mt-6 rounded-3xl bg-white p-6 shadow-sm">
+              Loading bookings...
+            </div>
+          ) : bookings.length > 0 ? (
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {bookings.slice(0, 3).map((booking) => {
+                const consultation = Array.isArray(
+                  booking.consultation_types
+                )
+                  ? booking.consultation_types[0]
+                  : booking.consultation_types;
+
+                const date = new Date(
+                  booking.start_time
+                );
+
+                return (
+                  <div
+                    key={booking.id}
+                    className="rounded-3xl bg-white p-6 shadow-sm"
+                  >
+                    <p className="text-sm font-semibold text-[#527A5A]">
+                      {date.toLocaleDateString(
+                        "en-GB",
+                        {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                        }
+                      )}
+                    </p>
+
+                    <p className="mt-1 text-2xl font-bold">
+                      {date.toLocaleTimeString(
+                        "en-GB",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          timeZone: "Europe/London",
+                        }
+                      )}
+                    </p>
+
+                    <p className="mt-3 font-semibold">
+                      {consultation?.name ||
+                        "Consultation"}
+                    </p>
+
+                    <p className="mt-1 text-sm text-[#636b63]">
+                      {booking.customer_name}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-3xl bg-white p-6 text-[#636b63] shadow-sm">
+              No upcoming bookings.
+            </div>
+          )}
+        </section>
 
         <section className="mt-10">
         <div className="flex items-center justify-between">
