@@ -11,11 +11,22 @@ export async function GET(request: NextRequest) {
 
     const date = searchParams.get("date");
 
+    const excludeBookingIdParam =
+      searchParams.get("excludeBookingId");
+
+    const excludeBookingId =
+      excludeBookingIdParam
+        ? Number(excludeBookingIdParam)
+        : undefined;
+
     if (
       !Number.isInteger(consultationId) ||
       consultationId <= 0 ||
       !date ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(date)
+      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      (excludeBookingId !== undefined &&
+        (!Number.isInteger(excludeBookingId) ||
+          excludeBookingId <= 0))
     ) {
       return NextResponse.json(
         { error: "Invalid booking request." },
@@ -25,7 +36,8 @@ export async function GET(request: NextRequest) {
 
     const availableTimes = await getAvailableTimes(
       consultationId,
-      date
+      date,
+      excludeBookingId
     );
 
     return NextResponse.json({

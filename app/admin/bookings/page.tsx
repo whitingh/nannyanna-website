@@ -430,7 +430,14 @@ export default function AdminBookingsPage() {
                 </div>
                 {activeTab === "upcoming" &&
                   booking.status !== "cancelled" && (
-                    <div className="mt-6 border-t border-black/10 pt-6">
+                    <div className="mt-6 flex flex-wrap gap-3 border-t border-black/10 pt-6">
+                      <Link
+                        href={`/admin/bookings/${booking.id}/reschedule`}
+                        className="rounded-full bg-[#527A5A] px-5 py-2.5 font-semibold text-white transition hover:bg-[#45694D]"
+                      >
+                        Reschedule booking
+                      </Link>
+
                       <button
                         type="button"
                         onClick={() =>

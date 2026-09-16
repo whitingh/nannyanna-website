@@ -16,7 +16,8 @@ const supabaseAdmin = createClient(
 
 export async function getAvailableTimes(
   consultationId: number,
-  date: string
+  date: string,
+  excludeBookingId?: number
 ) {
   const requestedDate = DateTime.fromISO(date, {
     zone: TIME_ZONE,
@@ -115,13 +116,24 @@ export async function getAvailableTimes(
     .endOf("day")
     .plus({ hours: 2 });
 
-  const { data: bookings, error: bookingsError } =
-    await supabaseAdmin
-      .from("bookings")
-      .select("start_time, end_time, status, expires_at")
-      .lt("start_time", queryEnd.toUTC().toISO())
-      .gt("end_time", queryStart.toUTC().toISO())
-      .in("status", ["pending", "confirmed"]);
+  let bookingsQuery = supabaseAdmin
+    .from("bookings")
+    .select("id, start_time, end_time, status, expires_at")
+    .lt("start_time", queryEnd.toUTC().toISO())
+    .gt("end_time", queryStart.toUTC().toISO())
+    .in("status", ["pending", "confirmed"]);
+
+  if (excludeBookingId) {
+    bookingsQuery = bookingsQuery.neq(
+      "id",
+      excludeBookingId
+    );
+  }
+
+  const {
+    data: bookings,
+    error: bookingsError,
+  } = await bookingsQuery;
 
   if (bookingsError) {
     throw new Error("Could not check existing bookings.");
